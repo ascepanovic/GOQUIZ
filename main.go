@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/mgo.v2"
 )
 
+// DataStore structure
 type DataStore struct {
 	session *mgo.Session
 }
@@ -38,16 +40,21 @@ func main() {
 	apiRoutes := r.Group("api")
 	{
 		apiRoutes.GET("/fetch/:link", apiFetch)
-		apiRoutes.GET("/questions", apiQuestions)
-		apiRoutes.GET("/question", apiOneQuestion)
 		apiRoutes.GET("/json", apiTournaments)
+
+		// API routes for questions
+		apiRoutes.GET("/questions", apiQuestions)
+		apiRoutes.GET("/question/:id", apiOneQuestion)
+		apiRoutes.POST("/question/create", apiCreateQuestion)
+		apiRoutes.POST("/question/update", apiUpdateQuestion)
+		apiRoutes.POST("/question/delete/:id", apiDeleteQuestion)
 	}
 
 	//now listen on defined port
 	r.Run(port)
 }
 
-//this function is using ginContext
+//HomeHandler this function is using ginContext
 func HomeHandler(c *gin.Context) {
 	//and sand some response do
 	c.String(200, "Hello from gin")
@@ -99,8 +106,70 @@ func apiQuestions(c *gin.Context) {
 }
 
 func apiOneQuestion(c *gin.Context) {
-	result := dmas.GetQuestion()
+	id, err := strconv.ParseInt(c.Param("id"), 0, 64)
+
+	if err != nil {
+		c.JSON(500, gin.H{"There was some problem...": err})
+	}
+
+	result := dmas.GetQuestionByID(id)
 	c.JSON(200, result)
+}
+
+func apiCreateQuestion(c *gin.Context) {
+	title := c.PostForm("title")
+	answer := c.PostForm("answer")
+	a1 := c.PostForm("a1")
+	a2 := c.PostForm("a2")
+	a3 := c.PostForm("a3")
+	a4 := c.PostForm("a4")
+
+	status, err := dmas.CreateQuestion(title, answer, a1, a2, a3, a4)
+
+	if status {
+		c.JSON(200, gin.H{"status": "All good"})
+	} else {
+		c.JSON(500, gin.H{"There was some problem...": err})
+	}
+}
+
+func apiUpdateQuestion(c *gin.Context) {
+	id, err := strconv.ParseInt(c.PostForm("id"), 0, 64)
+
+	if err != nil {
+		c.JSON(500, gin.H{"There was some problem with id...": err})
+	}
+
+	title := c.PostForm("title")
+	answer := c.PostForm("answer")
+	a1 := c.PostForm("a1")
+	a2 := c.PostForm("a2")
+	a3 := c.PostForm("a3")
+	a4 := c.PostForm("a4")
+
+	status, err := dmas.UpdateQuestion(id, title, answer, a1, a2, a3, a4)
+
+	if status {
+		c.JSON(200, gin.H{"status": "All good"})
+	} else {
+		c.JSON(500, gin.H{"There was some problem...": err})
+	}
+}
+
+func apiDeleteQuestion(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 0, 64)
+
+	if err != nil {
+		c.JSON(500, gin.H{"There was some problem...": err})
+	}
+
+	deleted := dmas.DeleteQuestion(id)
+	if deleted {
+		c.JSON(200, gin.H{"status": "Document is deleted"})
+	} else {
+		c.JSON(500, gin.H{"status": "There was some problem"})
+	}
+
 }
 
 //function to handle get of any url - content will be returned

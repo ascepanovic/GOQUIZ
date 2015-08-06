@@ -9,23 +9,21 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/mgo.v2"
+	"github.com/gorilla/websocket"
 	"gopkg.in/mgo.v2/bson"
 )
 
-// DataStore structure
-type DataStore struct {
-	session *mgo.Session
-}
-
 func main() {
-
 	port := ":4555" //on this port our web server will be liste for incoming requests
 
 	r := gin.Default() //default instance of gin framework used as router as well
+	//CORSMiddlware will inject needed headers for our angular client
+	r.Use(dmas.CORSMiddleware())
 
-	//load user middlware
-	//r.Use(scepo.UserMiddleware())
+	//for sockets
+	r.GET("/ws", func(c *gin.Context) {
+		wshandler(c.Writer, c.Request)
+	})
 
 	//listen for certain paths - Home
 	r.GET("/", HomeHandler)
@@ -60,6 +58,30 @@ func main() {
 
 	//now listen on defined port
 	r.Run(port)
+}
+
+//socket structure
+var wsupgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin:     func(r *http.Request) bool { return true },
+}
+
+//socket handler
+func wshandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := wsupgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println("Failed to set websocket upgrade: %+v", err)
+		return
+	}
+
+	for {
+		t, msg, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		conn.WriteMessage(t, msg)
+	}
 }
 
 //HomeHandler this function is using ginContext

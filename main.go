@@ -9,22 +9,23 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/mgo.v2"
+	"github.com/googollee/go-socket.io"
 )
 
-// DataStore structure
-type DataStore struct {
-	session *mgo.Session
-}
+var soIO *socketio.Server
 
 func main() {
-
 	port := ":4555" //on this port our web server will be liste for incoming requests
 
 	r := gin.Default() //default instance of gin framework used as router as well
+	//CORSMiddlware will inject needed headers for our angular client
+	r.Use(dmas.CORSMiddleware())
 
-	//load user middlware
-	//r.Use(scepo.UserMiddleware())
+	//routes for socketIO
+	r.GET("/socket.io/", socketHandler)
+	r.POST("/socket.io/", socketHandler)
+	r.Handle("WS", "/socket.io/", socketHandler)
+	r.Handle("WSS", "/socket.io/", socketHandler)
 
 	//listen for certain paths - Home
 	r.GET("/", HomeHandler)
@@ -52,6 +53,38 @@ func main() {
 
 	//now listen on defined port
 	r.Run(port)
+}
+
+//func socketHandler will handle socketIO related stuff
+func socketHandler(c *gin.Context) {
+	//create socketIO server as well
+	soIO, err := socketio.NewServer(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	soIO.On("connection", func(so socketio.Socket) {
+		fmt.Println("on connection")
+
+		so.Join("chat")
+		//fmt.Println("URL:", so.Request().URL)
+
+		so.BroadcastTo("chat", "event", "Hello my dear client")
+
+		//so.On("event", func(msg string) {
+		//fmt.Println("emit:", so.Emit("chat message", msg))
+		//so.BroadcastTo("chat", "event", msg)
+		//})
+		so.On("disconnection", func() {
+			fmt.Println("on disconnect")
+		})
+	})
+
+	soIO.On("error", func(so socketio.Socket, err error) {
+		fmt.Printf("[ WebSocket ] Error : %v", err.Error())
+	})
+
+	soIO.ServeHTTP(c.Writer, c.Request)
 }
 
 //HomeHandler this function is using ginContext

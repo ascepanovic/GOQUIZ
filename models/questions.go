@@ -2,8 +2,6 @@ package dmas
 
 import (
 	"dmas/config"
-	"encoding/json"
-	"fmt"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -82,16 +80,8 @@ func UpdateQuestion(id int64, params bson.M) (bool, error) {
 
 	session.SetMode(mgo.Monotonic, true)
 
-	updateQuery, err := json.Marshal(params)
-
-	if err != nil {
-		return false, err
-	}
-
-	fmt.Println(string(updateQuery))
-
 	update := bson.M{"$set": params}
-	err = session.DB(dmas.DbName).C("questions").Update(bson.M{"_id": id}, update)
+	err := session.DB(dmas.DbName).C("questions").Update(bson.M{"_id": id}, update)
 
 	if err != nil {
 		return false, err

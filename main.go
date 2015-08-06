@@ -9,11 +9,9 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
-	"github.com/googollee/go-socket.io"
+	"github.com/gorilla/websocket"
 	"gopkg.in/mgo.v2/bson"
 )
-
-var soIO *socketio.Server
 
 func main() {
 	port := ":4555" //on this port our web server will be liste for incoming requests
@@ -22,11 +20,10 @@ func main() {
 	//CORSMiddlware will inject needed headers for our angular client
 	r.Use(dmas.CORSMiddleware())
 
-	//routes for socketIO
-	r.GET("/socket.io/", socketHandler)
-	r.POST("/socket.io/", socketHandler)
-	r.Handle("WS", "/socket.io/", socketHandler)
-	r.Handle("WSS", "/socket.io/", socketHandler)
+	//for sockets
+	r.GET("/ws", func(c *gin.Context) {
+		wshandler(c.Writer, c.Request)
+	})
 
 	//listen for certain paths - Home
 	r.GET("/", HomeHandler)
@@ -56,36 +53,28 @@ func main() {
 	r.Run(port)
 }
 
-//func socketHandler will handle socketIO related stuff
-func socketHandler(c *gin.Context) {
-	//create socketIO server as well
-	soIO, err := socketio.NewServer(nil)
+//socket structure
+var wsupgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin:     func(r *http.Request) bool { return true },
+}
+
+//socket handler
+func wshandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := wsupgrader.Upgrade(w, r, nil)
 	if err != nil {
-		panic(err)
+		fmt.Println("Failed to set websocket upgrade: %+v", err)
+		return
 	}
 
-	soIO.On("connection", func(so socketio.Socket) {
-		fmt.Println("on connection")
-
-		so.Join("chat")
-		//fmt.Println("URL:", so.Request().URL)
-
-		so.BroadcastTo("chat", "event", "Hello my dear client")
-
-		//so.On("event", func(msg string) {
-		//fmt.Println("emit:", so.Emit("chat message", msg))
-		//so.BroadcastTo("chat", "event", msg)
-		//})
-		so.On("disconnection", func() {
-			fmt.Println("on disconnect")
-		})
-	})
-
-	soIO.On("error", func(so socketio.Socket, err error) {
-		fmt.Printf("[ WebSocket ] Error : %v", err.Error())
-	})
-
-	soIO.ServeHTTP(c.Writer, c.Request)
+	for {
+		t, msg, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		conn.WriteMessage(t, msg)
+	}
 }
 
 //HomeHandler this function is using ginContext

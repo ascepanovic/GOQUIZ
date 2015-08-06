@@ -10,6 +10,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 	"github.com/googollee/go-socket.io"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var soIO *socketio.Server
@@ -173,14 +174,33 @@ func apiUpdateQuestion(c *gin.Context) {
 		c.JSON(500, gin.H{"There was some problem with id...": err})
 	}
 
-	title := c.PostForm("title")
-	answer := c.PostForm("answer")
-	a1 := c.PostForm("a1")
-	a2 := c.PostForm("a2")
-	a3 := c.PostForm("a3")
-	a4 := c.PostForm("a4")
+	updateParams := bson.M{}
 
-	status, err := dmas.UpdateQuestion(id, title, answer, a1, a2, a3, a4)
+	if c.PostForm("title") != "" {
+		updateParams["title"] = c.PostForm("title")
+	}
+
+	if c.PostForm("answer") != "" {
+		updateParams["answer"] = c.PostForm("answer")
+	}
+
+	if c.PostForm("a1") != "" {
+		updateParams["a1"] = c.PostForm("a1")
+	}
+
+	if c.PostForm("a2") != "" {
+		updateParams["a2"] = c.PostForm("a2")
+	}
+
+	if c.PostForm("a3") != "" {
+		updateParams["a3"] = c.PostForm("a3")
+	}
+
+	if c.PostForm("a4") != "" {
+		updateParams["a4"] = c.PostForm("a4")
+	}
+
+	status, err := dmas.UpdateQuestion(id, updateParams)
 
 	if status {
 		c.JSON(200, gin.H{"status": "All good"})

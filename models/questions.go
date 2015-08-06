@@ -73,14 +73,14 @@ func CreateQuestion(title, answer, a1, a2, a3, a4 string) (bool, error) {
 }
 
 // UpdateQuestion updating question in db
-func UpdateQuestion(id int64, title, answer, a1, a2, a3, a4 string) (bool, error) {
+func UpdateQuestion(id int64, params bson.M) (bool, error) {
 
 	session := dmas.MgoSession.Clone()
 	defer session.Close()
 
 	session.SetMode(mgo.Monotonic, true)
 
-	update := bson.M{"$set": bson.M{"title": title, "answer": answer, "a1": a1, "a2": a3, "a3": a3, "a4": a4}}
+	update := bson.M{"$set": params}
 	err := session.DB(dmas.DbName).C("questions").Update(bson.M{"_id": id}, update)
 
 	if err != nil {
@@ -90,6 +90,7 @@ func UpdateQuestion(id int64, title, answer, a1, a2, a3, a4 string) (bool, error
 	return true, nil
 }
 
+// DeleteQuestion removes question from collection
 func DeleteQuestion(id int64) bool {
 	session := dmas.MgoSession.Clone()
 	defer session.Close()

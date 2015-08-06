@@ -2,10 +2,11 @@ package dmas
 
 import (
 	"dmas/config"
+	"encoding/json"
+	"fmt"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	// "gopkg.in/mgo.v2/bson"
 )
 
 //Question structure
@@ -74,15 +75,23 @@ func CreateQuestion(title, answer, a1, a2, a3, a4 string) (bool, error) {
 }
 
 // UpdateQuestion updating question in db
-func UpdateQuestion(id int64, title, answer, a1, a2, a3, a4 string) (bool, error) {
+func UpdateQuestion(id int64, params bson.M) (bool, error) {
 
 	session := dmas.MgoSession.Clone()
 	defer session.Close()
 
 	session.SetMode(mgo.Monotonic, true)
 
-	update := bson.M{"$set": bson.M{"title": title, "answer": answer, "a1": a1, "a2": a3, "a3": a3, "a4": a4}}
-	err := session.DB(dmas.DbName).C("questions").Update(bson.M{"_id": id}, update)
+	updateQuery, err := json.Marshal(params)
+
+	if err != nil {
+		return false, err
+	}
+
+	fmt.Println(string(updateQuery))
+
+	update := bson.M{"$set": params}
+	err = session.DB(dmas.DbName).C("questions").Update(bson.M{"_id": id}, update)
 
 	if err != nil {
 		return false, err
@@ -91,6 +100,7 @@ func UpdateQuestion(id int64, title, answer, a1, a2, a3, a4 string) (bool, error
 	return true, nil
 }
 
+// DeleteQuestion removes question from collection
 func DeleteQuestion(id int64) bool {
 	session := dmas.MgoSession.Clone()
 	defer session.Close()

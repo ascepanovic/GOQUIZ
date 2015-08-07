@@ -41,6 +41,13 @@ func main() {
 		apiRoutes.GET("/fetch/:link", apiFetch)
 		apiRoutes.GET("/json", apiTournaments)
 
+		// API routes for users
+		apiRoutes.GET("/users", apiUsers)
+		apiRoutes.GET("/user/:id", apiOneUser)
+		apiRoutes.POST("/user/create", apiCreateUser)
+		apiRoutes.POST("/user/update", apiUpdateUser)
+		apiRoutes.POST("/user/delete/:id", apiDeleteUser)
+
 		// API routes for questions
 		apiRoutes.GET("/questions", apiQuestions)
 		apiRoutes.GET("/question/:id", apiOneQuestion)
@@ -121,6 +128,74 @@ func apiTournaments(c *gin.Context) {
 	}
 }
 
+func apiUsers(c *gin.Context) {
+	result := dmas.GetAllUsers()
+	c.JSON(200, result)
+}
+
+func apiOneUser(c *gin.Context) {
+	id := c.Param("id")
+
+	result := dmas.GetUserById(id)
+	c.JSON(200, result)
+}
+
+func apiCreateUser(c *gin.Context) {
+
+	var data = map[string]string{}
+	data["firstname"] = c.PostForm("firstname")
+	data["lastname"] = c.PostForm("lastname")
+	data["username"] = c.PostForm("username")
+	data["email"] = c.PostForm("email")
+	data["facebook_id"] = c.PostForm("facebook_id")
+	data["is_active"] = c.PostForm("active")
+
+	status, err := dmas.CreateUser(data)
+
+	if status {
+		c.JSON(200, gin.H{"status": "All good"})
+	} else {
+		c.JSON(500, gin.H{"There was some problem...": err})
+	}
+}
+
+func apiUpdateUser(c *gin.Context) {
+	id := c.PostForm("id")
+	updateParams := bson.M{}
+
+	if c.PostForm("firstname") != "" {
+		updateParams["firstname"] = c.PostForm("firstname")
+	}
+
+	if c.PostForm("lastname") != "" {
+		updateParams["lastname"] = c.PostForm("lastname")
+	}
+
+	if c.PostForm("username") != "" {
+		updateParams["username"] = c.PostForm("username")
+	}
+
+	if c.PostForm("email") != "" {
+		updateParams["email"] = c.PostForm("email")
+	}
+
+	if c.PostForm("facebook_id") != "" {
+		updateParams["facebook_id"] = c.PostForm("facebook_id")
+	}
+
+	if c.PostForm("active") != "" {
+		updateParams["active"] = c.PostForm("active")
+	}
+
+	status, err := dmas.UpdateUser(id, updateParams)
+
+	if status {
+		c.JSON(200, gin.H{"status": "All good"})
+	} else {
+		c.JSON(500, gin.H{"There was some problem...": err})
+	}
+}
+
 func apiQuestions(c *gin.Context) {
 	fmt.Println("Into questions function...")
 	result := dmas.GetAllQuestions()
@@ -137,6 +212,18 @@ func apiOneQuestion(c *gin.Context) {
 
 	result := dmas.GetQuestionByID(id)
 	c.JSON(200, result)
+}
+
+func apiDeleteUser(c *gin.Context) {
+	id := c.Param("id")
+
+	deleted := dmas.DeleteUser(id)
+	if deleted {
+		c.JSON(200, gin.H{"status": "User is deleted"})
+	} else {
+		c.JSON(500, gin.H{"status": "There was some problem"})
+	}
+
 }
 
 func apiCreateQuestion(c *gin.Context) {

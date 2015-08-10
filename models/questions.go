@@ -1,4 +1,4 @@
-package dmas
+package models
 
 import (
 	"dmas/config"
@@ -9,7 +9,7 @@ import (
 
 //Question structure
 type Question struct {
-	_ID    int64  `db:"_id" json:"id"`
+	ID    bson.ObjectId  `db:"_id" json:"id"`
 	Title  string `db:"title" json:"title"`
 	Answer string `db:"answer" json:"answer"`
 	A1     string `db:"a1" json:"a1"`
@@ -27,7 +27,6 @@ func GetAllQuestions() []Question {
 
 	// Optional. Switch the session to a monotonic behavior.
 	session.SetMode(mgo.Monotonic, true)
-
 	session.DB(dmas.DbName).C("questions").Find(nil).All(&result)
 
 	return result
@@ -96,7 +95,6 @@ func DeleteQuestion(id int64) bool {
 	defer session.Close()
 
 	session.SetMode(mgo.Monotonic, true)
-
 	err := session.DB(dmas.DbName).C("questions").RemoveId(id)
 
 	if err != nil {

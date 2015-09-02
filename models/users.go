@@ -1,4 +1,4 @@
-package dmas
+package models
 
 import (
   "dmas/config"
@@ -10,7 +10,7 @@ import (
 
 // User structure
 type User struct {
-	_ID    string  `db:"_id" json:"id"`
+	ID   bson.ObjectId  `db:"_id" json:"id"`
 	Firstname  string `db:"firstname" json:"firstname"`
 	Lastname string `db:"firstname" json:"lastname"`
 	Username     string `db:"username" json:"username"`
@@ -31,7 +31,6 @@ func GetAllUsers() []User {
 
 	// Optional. Switch the session to a monotonic behavior.
 	session.SetMode(mgo.Monotonic, true)
-
 	session.DB(dmas.DbName).C("users").Find(nil).All(&result)
 
 	return result
